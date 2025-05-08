@@ -24,7 +24,7 @@ namespace defendnot {
         /// WSC will reject the register request if name is empty
         auto name_w = std::wstring(shared::ctx.name.begin(), shared::ctx.name.end());
         if (name_w.empty()) {
-            throw std::runtime_error("AV Name can not be empty!");
+            throw std::runtime_error("[!] AV Name can not be empty!");
         }
 
         /// Convert to BSTR

