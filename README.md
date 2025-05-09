@@ -36,9 +36,9 @@ Optional arguments:
   -v, --verbose   verbose logging
 ```
 
-## Implementation
+## Writeup
 
-A more detailed writeup will be coming in a few days.
+[How I ruined my vacation by reverse engineering WSC](https://blog.es3n1n.eu/posts/how-i-ruined-my-vacation/)
 
 ## Special thanks
 
